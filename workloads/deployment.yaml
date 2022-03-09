@@ -26,7 +26,7 @@ spec:
     spec:
       containers:
       - name: example-app
-        image: mitin20/python:1.0.5
+        image: mitin20/python:1.0.4
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
