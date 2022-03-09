@@ -1,0 +1,1 @@
+{"jobID":"c0018d82-5aaa-0fe0-676b-e1fdd1f21b4c","spec":{"type":"policy","cause":{"Message":"","User":"Arturo Amaya \u003carturo@backbase.com\u003e"},"spec":{"default:deployment/example-deploy":{"add":{"tag.example-app":"glob:1.0.*"},"remove":{}}}},"result":null}
