@@ -1,0 +1,224 @@
+global:
+  bbVersion: "2021.07"
+  app:
+    image:
+      registry: repo.backbase.com/backbase-docker-releases
+  chartName: local-k8s
+  database:
+    enabled: true
+    host: mysql
+    type: mysql
+    checkEnabled: true
+    existingSecret: mysql
+    urlTemplate: "jdbc:mysql://{{.database.host}}:{{.database.port}}/{{.database.sid}}?useSSL=false"
+  activemq:
+    enabled: true
+    host: activemq
+    existingSecret: activemq
+  jwt:
+    enabled: true
+    existingSecret: local-k8s-jwt
+    SIG_SECRET_KEY_fromSecret: true
+    EXTERNAL_SIG_SECRET_KEY_fromSecret: true
+    EXTERNAL_ENC_SECRET_KEY_fromSecret: true
+    USERCTX_KEY_fromSecret: true
+
+backbase-env:
+  fullnameOverride: local-k8s
+  activemq:
+    enabled: true
+    fullnameOverride: activemq
+  mysql:
+    enabled: true
+    mysqlRootPassword: backbase321!
+    mysqlPassword: backbase123
+    fullnameOverride: mysql
+  jwt:
+    enabled: true
+    internalSecretKey: "JWTSecretKeyDontUseInProduction!"
+    externalSecretKey: "JWTSecretKeyDontUseInProduction!"
+    externalEncSecretKey: "JWTEncKeyDontUseInProduction666!"
+    userctxKey: "JWTSecretKeyDontUseInProduction!"
+
+edge:
+  edge:
+    env:
+      GATEWAY_ACTUATOR_USER: "admin"
+      GATEWAY_ACTUATOR_PASSWORD: "admin"
+    app:
+      image:
+        tagFrom: bbVersion
+    ingress:
+      enabled: true
+      annotations:
+        "kubernetes.io/ingress.class": "nginx"
+        "nginx.ingress.kubernetes.io/ssl-redirect": "false"
+        "nginx.ingress.kubernetes.io/proxy-body-size": "100m"
+        "nginx.ingress.kubernetes.io/client_max_body_size": "100m"
+      hosts:
+        - host: "kubernetes.docker.internal"
+          paths:
+            - /
+
+backbase-identity:
+  backbaseidentity:
+    database:
+      sid: "backbase_identity"
+    env:
+      "quarkus.datasource.jdbc.transaction-isolation-level": "2"
+      KEYCLOAK_ADMIN: "admin"
+      KEYCLOAK_ADMIN_PASSWORD: "admin"
+      KEYCLOAK_PASSWORD: "admin"
+      KEYCLOAK_USER: "admin"
+      QUARKUS_HTTP_CORS_ORIGINS: "http://kubernetes.docker.internal"
+      #KEYCLOAK_BACKBASE_CONTENT_SERVICE_URL: "http://contentservices:8080"
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_DEFAULT_STRATEGY: 'FIFO'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_NAME: 'backbase'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITDIRECTGRANT_NAME: 'session-limit-direct-grant'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITDIRECTGRANT_STRATEGY: 'FIFO'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITDIRECTGRANT_LIMIT: '2'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITWEB_NAME: 'session-limit-web'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITWEB_STRATEGY: 'FIFO'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITWEB_LIMIT: '3'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITWEBALTERNATE_NAME: 'session-limit-web-alternate'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITWEBALTERNATE_STRATEGY: 'FIFO'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITWEBALTERNATE_LIMIT: '1'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITEXEMPTIONMOBILE_NAME: 'session-limit-exemption-mobile'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITEXEMPTIONMOBILE_STRATEGY: 'FIFO'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITEXEMPTIONMOBILE_LIMIT: '2'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITEXEMPTIONWEB_NAME: 'session-limit-exemption-web'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITEXEMPTIONWEB_STRATEGY: 'FIFO'
+      KEYCLOAK_BACKBASE_SESSION_LIMIT_REALMS_BACKBASE_CLIENTS_SESSIONLIMITEXEMPTIONWEB_LIMIT: '1'
+      KEYCLOAK_HOSTNAME_DEFAULT_FRONTENDURL: "http://identity.docker.internal/auth"
+      JAVA_TOOL_OPTIONS: "-Dkeycloak.migration.action=import -Dkeycloak.profile.feature.upload_scripts=enabled"
+      KEYCLOAK_BACKBASE_OIDC_TOKEN_CONVERTER_URL: "http://token-converter:8080"
+      KEYCLOAK_CONNECTIONSJPA_QUARKUS_INITIALIZEEMPTY: "true"
+      KEYCLOAK_CONNECTIONSJPA_QUARKUS_MIGRATIONSTRATEGY: "update"
+    volumeMounts:
+      - mountPath: /tmp/keycloak-export/
+        name: config
+    volumes:
+      - name: config
+        configMap:
+          name: identity-configmap
+          items:
+            - key: backbase-realm.json
+              path: backbase-realm.json
+            - key: backbase-users-0.json
+              path: backbase-users-0.json
+    app:
+      image:
+        tagFrom: bbVersion
+    ingress:
+      enabled: true
+      annotations:
+        "kubernetes.io/ingress.class": "nginx"
+        "nginx.ingress.kubernetes.io/proxy-read-timeout": "600"
+        "nginx.ingress.kubernetes.io/proxy-buffer-size": "10m"
+        "nginx.ingress.kubernetes.io/ssl-redirect": "false"
+        "nginx.ingress.kubernetes.io/proxy-body-size": "100m"
+        "nginx.ingress.kubernetes.io/client_max_body_size": "100m"
+      hosts:
+        - host: "identity.docker.internal"
+          paths:
+            - /
+oidc-token-converter:
+  oidctokenconverter:
+    enabled: true
+    env:
+      BACKBASE_TOKENCONVERTER_CLAIMVALUEVALIDATION_ENABLED: "true"
+      BACKBASE_TOKENCONVERTER_VERIFYONLYNOINTERNALTOKEN: "true"
+      BACKBASE_OIDCTOKENCONVERTER_FORCEJWKSVERIFICATIONGIVENMATCHINGCLAIMS: "true"
+      BACKBASE_TOKENCONVERTER_CLAIMVALUEVALIDATION_CLAIMDENYENTRIES_0_CLAIMNAME: "acr"
+      BACKBASE_TOKENCONVERTER_CLAIMVALUEVALIDATION_CLAIMDENYENTRIES_0_CLAIMVALUES: "bb:deny"
+      BACKBASE_OIDCTOKENCONVERTER_WHITELISTEDDOMAINS_0_ISSUERHOST: "identity-backbaseidentity"
+      BACKBASE_OIDCTOKENCONVERTER_WHITELISTEDDOMAINS_0_INTERNALHOST: "identity-backbaseidentity:8080"
+      BACKBASE_OIDCTOKENCONVERTER_WHITELISTEDDOMAINS_1_ISSUERHOST: "identity.docker.internal"
+      BACKBASE_OIDCTOKENCONVERTER_WHITELISTEDDOMAINS_1_INTERNALHOST: "identity-backbaseidentity:8080"
+      BACKBASE_OIDCTOKENCONVERTER_USERINFOVERIFICATION: "true"
+      BACKBASE_TOKENCONVERTER_CLAIMSMAPPING_0_EXTERNAL: "userinfo_external_claim"
+      BACKBASE_TOKENCONVERTER_CLAIMSMAPPING_0_INTERNAL: "userinfo_internal_claim"
+      BACKBASE_TOKENCONVERTER_CLAIMSMAPPING_0_REQUIRED: "false"
+      BACKBASE_TOKENCONVERTER_CLAIMSMAPPING_1_EXTERNAL: "tid"
+      BACKBASE_TOKENCONVERTER_CLAIMSMAPPING_1_INTERNAL: "tid"
+      BACKBASE_TOKENCONVERTER_CLAIMSMAPPING_1_REQUIRED: "false"
+      SPRING_AUTOCONFIGURE_EXCLUDE: "org.springframework.cloud.function.context.config.ContextFunctionCatalogAutoConfiguration"
+    app:
+      image:
+        tagFrom: bbVersion
+
+cxs-contentservices:
+  contentservices:
+    app:
+      name: contentservices
+      image:
+        tagFrom: bbVersion
+    env:
+      "SPRING_LIQUIBASE_ENABLED": "true"
+
+cxs-provisioning:
+  provisioning:
+    app:
+      name: provisioning
+      image:
+        tagFrom: bbVersion
+    env:
+      "SPRING_LIQUIBASE_ENABLED": "true"
+
+cxs-portal:
+  portal:
+    app:
+      name: portal
+      image:
+        tagFrom: bbVersion
+    env:
+      "SPRING_LIQUIBASE_ENABLED": "true"
+      "portal.experiences.configuration.clientId": "bb-web-client"
+      "portal.experiences.configuration.scope": "openid"
+      "portal.experiences.configuration.response_type": "code id_token token"
+      "portal.experiences.configuration.kind": "hybrid"
+      "portal.experiences.configuration.realm": "backbase"
+      "portal.experiences.configuration.authUrl": "http://identity.docker.internal/auth"
+      "portal.experiences.configuration.landingPageUrl": "http://kubernetes.docker.internal/cxp-manager"
+      "portal.experiences.configuration.loginPageUrl": "http://kubernetes.docker.internal/cxp-manager/login"
+      #"portal.dynamic.url.identifier": "@@"
+      PORTAL_RESOURCELOCATION_PROFILE: "contentservice"
+      PORTAL_RESOURCELOCATION_PATH: "/tmp"
+      SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: "org.hibernate.dialect.MySQL5Dialect"
+      SPRING_JPA_PROPERTIES_HIBERNATE_SESSIONFACTORYNAMEISJNDI: "false"
+
+backbase-statics:
+  image:
+    registry: docker.io
+    repository: torrespro/statics-identity
+    tag: latest
+    pullPolicy: Always
+  job:
+    check:
+      enabled: true
+      targets:
+        - name: Authentication
+          url: http://identity-backbaseidentity:8080/auth/realms/backbase/.well-known/openid-configuration
+        - name: 8080/api/provisioning
+          url: http://edge:8080/api/provisioning/actuator/health
+    imports:
+      - repository: https://repo.backbase.com
+        apikey:
+        username: <yourRepoUsername>
+        password: <yourRepoPassword>
+        statics:
+          - /backbase-6-release/com/backbase/tools/provisioner-cli/7.0.0-b2/provisioner-cli-7.0.0-b2.jar
+          - /backbase-6-release/com/backbase/cxp/editorial-collection/2.23.0-b21/editorial-collection-2.23.0-b21.zip
+          - /expert-release-local/com/backbase/web-sdk/collection/collection-bb-web-sdk/1.16.1/collection-bb-web-sdk-1.16.1.zip
+          - /backbase-6-release/com/backbase/cxp/experience-manager/2.23.0-b21/experience-manager-2.23.0-b21.zip
+    target:
+      identity-scope: openid
+      identity-grant-type: password
+      identity-client-id: bb-tooling-client
+      identity-realm: backbase
+      auth-url: http://identity-backbaseidentity:8080
+      context: http://edge:8080/api/provisioning
+      password: admin
+      retry-back-off-period: 2000
+      retry-max-attempts: 20
+      username: admin
