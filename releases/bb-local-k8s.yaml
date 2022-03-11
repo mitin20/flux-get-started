@@ -1,0 +1,13 @@
+apiVersion: helm.fluxcd.io/v1
+kind: HelmRelease
+metadata:
+  name: bb-local
+  namespace: default
+  annotations:
+    fluxcd.io/automated: "true"
+spec:
+  releaseName: bb-local
+  chart:
+    git: git@github.com:mitin20/flux-get-started
+    path: local-k8s
+    ref: master
