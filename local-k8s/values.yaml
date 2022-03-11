@@ -182,7 +182,7 @@ cxs-portal:
       "portal.experiences.configuration.landingPageUrl": "http://kubernetes.docker.internal/cxp-manager"
       "portal.experiences.configuration.loginPageUrl": "http://kubernetes.docker.internal/cxp-manager/login"
       #"portal.dynamic.url.identifier": "@@"
-      PORTAL_RESOURCELOCATION_PROFILE: "contentservice"
+      PORTAL_RESOURCELOCATION_PROFILE: "filesystem"
       PORTAL_RESOURCELOCATION_PATH: "/tmp"
       SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT: "org.hibernate.dialect.MySQL5Dialect"
       SPRING_JPA_PROPERTIES_HIBERNATE_SESSIONFACTORYNAMEISJNDI: "false"
