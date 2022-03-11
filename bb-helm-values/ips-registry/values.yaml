@@ -1,0 +1,45 @@
+global:
+  # rollme will ensure that the pods are recreated even without changing the image tags, more info  https://helm.sh/docs/howto/charts_tips_and_tricks/#automatically-roll-deployments
+  podExtraAnnotations:
+    rollme: "{{ randAlphaNum 5 | quote }}"
+  chartName: ips-registry
+
+  app:
+    metadata:
+      tier: ips
+    image:
+      registry: repo.backbase.com/backbase-docker-releases
+      tag: IPS-1.12.1
+  imagePullSecrets:
+    - name: bbrepo-credentials      
+
+  env:
+    "eureka.instance.hostname": localhost
+
+  jwt:
+    enabled: true
+    existingSecret: backbase-env-jwt
+    SIG_SECRET_KEY_fromSecret: true
+
+  registry:
+    enabled: true
+    preferIpAddress: true
+    host: localhost
+    checkEnabled: false
+
+registry:
+  app:
+    name: registry
+    image:
+      repository: registry
+
+  livenessProbe:
+    enabled: true
+
+  readinessProbe:
+    enabled: true
+
+  service:
+    enabled: true
+    nameOverride: registry
+
